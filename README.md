@@ -46,7 +46,7 @@ To start the motion detector on boot, follow these steps:
 Name=Motion Detector
 Type=Application
 Comment=RPI motion detection
-Exec=sh -c 'sleep 10 && /usr/bin/python3 /path/to/motion_detector.py arguments... &> /path/to/logfile'
+Exec=sh -c 'sleep 10 && /usr/bin/python3 /path/to/motion_detector.py arguments... > /path/to/logfile 2>&1'
 ~~~
 
 ### 4) Make the file executable: `chmod +x ~/.config/autostart/MotionDetector.desktop`

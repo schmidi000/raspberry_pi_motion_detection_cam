@@ -128,25 +128,29 @@ class MotionDetector:
         previous_frame = None
 
         while True:
-            current_frame = self.__picam2.capture_buffer("lores" if self.__capture_lores else "main")
-            current_frame = current_frame[:w * h].reshape(h, w)
-            if previous_frame is not None:
-                hist_diff = self.__calculate_histogram_difference(current_frame, previous_frame)
-                if hist_diff > self.__min_pixel_diff and not self.__is_max_recording_length_exceeded() and not self.__encoding:
-                    if not self.__encoding:
-                        self.__start_time_of_last_recording = datetime.datetime.now()
-                        logging.info(f"start recording of new recording: {self.__start_time_of_last_recording}")
-                        self.__start_recording()
-                    self.__time_of_last_motion_detection = datetime.datetime.now()
-                elif self.__is_max_recording_length_exceeded():
-                    logging.info(
-                        f"max recording time exceeded after {(datetime.datetime.now() - self.__start_time_of_last_recording).total_seconds()} seconds")
-                    self.__write_recording_to_file()
-                else:
-                    if self.__is_max_time_since_last_motion_detection_exceeded():
-                        logging.info("max time since last motion detection exceeded")
+            try:
+                current_frame = self.__picam2.capture_buffer("lores" if self.__capture_lores else "main")
+                current_frame = current_frame[:w * h].reshape(h, w)
+                if previous_frame is not None:
+                    hist_diff = self.__calculate_histogram_difference(current_frame, previous_frame)
+                    if hist_diff > self.__min_pixel_diff and not self.__is_max_recording_length_exceeded() and not self.__encoding:
+                        if not self.__encoding:
+                            self.__start_time_of_last_recording = datetime.datetime.now()
+                            logging.info(f"start recording of new recording: {self.__start_time_of_last_recording}")
+                            self.__start_recording()
+                        self.__time_of_last_motion_detection = datetime.datetime.now()
+                    elif self.__is_max_recording_length_exceeded():
+                        logging.info(
+                            f"max recording time exceeded after {(datetime.datetime.now() - self.__start_time_of_last_recording).total_seconds()} seconds")
                         self.__write_recording_to_file()
-            previous_frame = current_frame
+                    else:
+                        if self.__is_max_time_since_last_motion_detection_exceeded():
+                            logging.info("max time since last motion detection exceeded")
+                            self.__write_recording_to_file()
+                previous_frame = current_frame
+            except Exception as e:
+                logging.error(f"An error occurred in the motion detection loop: {e}")
+                continue
 
     def __calculate_histogram_difference(self, current_frame, previous_frame):
         current_image = Image.fromarray(current_frame)
@@ -167,8 +171,8 @@ class MotionDetector:
 
     def __is_max_time_since_last_motion_detection_exceeded(self):
         return self.__encoding and self.__time_of_last_motion_detection is not None and \
-               ((
-                        datetime.datetime.now() - self.__time_of_last_motion_detection).total_seconds() > self.__MAX_TIME_SINCE_LAST_MOTION_DETECTION_SECONDS)
+            ((
+                     datetime.datetime.now() - self.__time_of_last_motion_detection).total_seconds() > self.__MAX_TIME_SINCE_LAST_MOTION_DETECTION_SECONDS)
 
     def __start_recording(self):
         self.__encoder.output.fileoutput = self.__get_recording_file_path()
